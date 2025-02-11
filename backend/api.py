@@ -5,6 +5,7 @@ from fastapi.params import Body, Query
 from sqlalchemy import select, func
 from fastapi.responses import JSONResponse
 
+from backend.schemas import ProductListOutSchema
 from db import async_session
 from jwt_token import create_jwt_token, get_current_user
 from schemas import UserSignInSchema, UserSignUpSchema, ProductOutSchema
@@ -67,7 +68,7 @@ async def logout(response: Response, request: Request):
 
     return {"message": "Пользователь успешно вышел из системы"}
 
-@router.get("/get_products")
+@router.get("/get_products", response_model=ProductListOutSchema)
 async def get_products(
     request: Request,
     page: Optional[int] = Query(default=1, ge=1),
