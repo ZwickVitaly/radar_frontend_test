@@ -1,13 +1,13 @@
-from typing import Optional
+from typing import Optional, Annotated
 
-from fastapi import APIRouter, Response, Request
+from fastapi import APIRouter, Response, Request, Depends
 from fastapi.params import Body, Query
 from sqlalchemy import select, func
 from fastapi.responses import JSONResponse
 
 from schemas import ProductListOutSchema
 from db import async_session
-from jwt_token import create_jwt_token, get_current_user
+from jwt_token import create_jwt_token, get_current_user, apikey_scheme
 from schemas import UserSignInSchema, UserSignUpSchema, ProductOutSchema
 from db_models import Product, User
 
@@ -53,29 +53,33 @@ async def sign_in(
     token = create_jwt_token(user.id)
 
     response.set_cookie(
-        key="Authorization",
-        value=f"Bearer {token}",
+        key="token",
+        value=f"{token}",
     )
 
-    return {"message": "Пользователь успешно вошёл в систему"}
+    return {"message": "Пользователь успешно вошёл в систему, токен установлен в cookie"}
 
 @router.post("/logout")
-async def logout(response: Response, request: Request):
+async def logout(
+    access_token: Annotated[str, Depends(apikey_scheme)],
+    response: Response,
+):
     """Эндпоинт для выхода из системы"""
-    _ = get_current_user(request)
+    _ = get_current_user(access_token)
 
-    response.delete_cookie("Authorization")
+    response.delete_cookie("token")
 
-    return {"message": "Пользователь успешно вышел из системы"}
+    return {"message": "Пользователь вышел, cookie удален"}
 
 @router.get("/get_products", response_model=ProductListOutSchema)
 async def get_products(
-    request: Request,
+    access_token: Annotated[str, Depends(apikey_scheme)],
     page: Optional[int] = Query(default=1, ge=1),
     limit: Optional[int] = Query(default=10, ge=1)
 ):
     """Эндпоинт для получения списка товаров"""
-    _ = get_current_user(request)
+    print(access_token)
+    _ = get_current_user(access_token)
     if limit not in [1, 5, 10]:
         return JSONResponse(status_code=422, content={"message": "Лимит товаров на странице может быть 1, 5 или 10"})
     async with async_session() as session:

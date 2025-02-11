@@ -2,7 +2,10 @@ import jwt
 from datetime import datetime, timedelta
 from fastapi import HTTPException, Request
 from settings import SECRET_KEY, ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES
+from fastapi.security import APIKeyHeader
 
+
+apikey_scheme = APIKeyHeader(name="Authorization", description="JWT {token}")
 
 def create_jwt_token(user_id: int) -> str:
     payload = {
@@ -27,13 +30,11 @@ def decode_jwt_token(token: str) -> dict:
         raise HTTPException(status_code=401, detail="Invalid token")
 
 
-def get_current_user(request: Request):
-    token = request.cookies.get("Authorization")
-
+def get_current_user(token: str):
     if not token:
         raise HTTPException(status_code=401, detail="Missing Authorization token")
 
-    if token.startswith("Bearer "):
+    if token.startswith("JWT "):
         token = token.split(" ")[1]
 
     token_dict = decode_jwt_token(token)
