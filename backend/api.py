@@ -5,7 +5,7 @@ from fastapi.params import Body, Query
 from sqlalchemy import select, func
 from fastapi.responses import JSONResponse
 
-from backend.schemas import ProductListOutSchema
+from schemas import ProductListOutSchema
 from db import async_session
 from jwt_token import create_jwt_token, get_current_user
 from schemas import UserSignInSchema, UserSignUpSchema, ProductOutSchema
