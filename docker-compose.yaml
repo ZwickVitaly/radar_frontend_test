@@ -1,0 +1,59 @@
+services:
+  db:
+    image: postgres
+    container_name: db
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+    healthcheck:
+      test: [ "CMD-SHELL", "su postgres -c \"pg_isready -U ${DB_USER}\"" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - ./app_data/db:/var/lib/postgresql/data
+    networks:
+      - radar
+
+
+  backend:
+    build:
+      dockerfile: Dockerfile
+    container_name: backend
+    env_file:
+      - .env
+    entrypoint: ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./media:/app/media
+    networks:
+      - radar
+
+  nginx:
+    container_name: nginx
+    restart: on-failure
+    image: nginx
+    env_file:
+      - .env
+    ports:
+      - "80:80"
+    volumes:
+      - ./logs/nginx:/var/log/nginx
+      - ./nginx/nginx.conf.template:/etc/nginx/templates/default.conf.template
+      - ./media:/www/data/media
+    depends_on:
+      db:
+        condition: service_started
+      backend:
+        condition: service_started
+    networks:
+      - radar
+
+networks:
+  radar:
